@@ -181,6 +181,16 @@ else
 end
 
 if node['rabbitmq']['cluster'] && (node['rabbitmq']['erlang_cookie'] != existing_erlang_key)
+
+  directory "/var/lib/rabbitmq/mnesia" do
+    action :nothing
+    recursive true
+  end
+
+  execute "sleep 10" do
+    action :run
+  end
+
   template node['rabbitmq']['erlang_cookie_path'] do
     source 'doterlang.cookie.erb'
     owner 'rabbitmq'

@@ -31,6 +31,8 @@ case node['platform_family']
 when 'debian'
   # installs the required setsid command -- should be there by default but just in case
   package 'util-linux'
+  # logrotate is a package dependency of rabbitmq-server
+  package 'logrotate'
 
   if node['rabbitmq']['use_distro_version']
     package 'rabbitmq-server'
@@ -182,13 +184,9 @@ end
 
 if node['rabbitmq']['cluster'] && (node['rabbitmq']['erlang_cookie'] != existing_erlang_key)
 
-  directory "/var/lib/rabbitmq/mnesia" do
-    action :nothing
-    recursive true
-  end
-
-  execute "sleep 10" do
-    action :run
+  log "stopping service[#{node['rabbitmq']['service_name']}] to change erlang_cookie" do
+    level :info
+    notifies :stop, "service[#{node['rabbitmq']['service_name']}]", :immediately
   end
 
   template node['rabbitmq']['erlang_cookie_path'] do
@@ -196,7 +194,6 @@ if node['rabbitmq']['cluster'] && (node['rabbitmq']['erlang_cookie'] != existing
     owner 'rabbitmq'
     group 'rabbitmq'
     mode 00400
-    notifies :stop, "service[#{node['rabbitmq']['service_name']}]", :immediately
     notifies :start, "service[#{node['rabbitmq']['service_name']}]", :immediately
     notifies :run, 'execute[reset-node]', :immediately
   end
